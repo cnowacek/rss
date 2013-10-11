@@ -7,12 +7,18 @@
 //
 
 #import "CTAppDelegate.h"
+#import "CTViewController.h"
 
 @implementation CTAppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
     self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    
+    CTViewController *table = [[CTViewController alloc] initWithNibName:@"CTViewController" bundle:nil];
+    self.navigationController = [[UINavigationController alloc] initWithRootViewController:table];
+    self.window.rootViewController = self.navigationController;
+    
     // Override point for customization after application launch.
     self.window.backgroundColor = [UIColor whiteColor];
     [self.window makeKeyAndVisible];
