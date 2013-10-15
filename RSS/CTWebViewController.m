@@ -21,30 +21,29 @@
     
     if(self) {
         self.webView = [[UIWebView alloc] init];
+        [self.webView setDelegate:self];
         [self.view addSubview:self.webView];
     }
     
     return self;
 }
 
+- (void)dealloc {
+    _webView.delegate = nil;
+    [UIApplication sharedApplication].networkActivityIndicatorVisible = YES;
+}
+
 - (void)loadSite:(NSString*)site {
+    [UIApplication sharedApplication].networkActivityIndicatorVisible = YES;
     NSURL *url = [NSURL URLWithString:site];
     NSURLRequest *req = [NSURLRequest requestWithURL:url];
     [self.webView loadRequest:req];
 }
 
 - (void)webViewDidFinishLoad:(UIWebView *)webView {
+    [UIApplication sharedApplication].networkActivityIndicatorVisible = NO;
     if(self.webView.loading)
         return;
-    
-    CTAppDelegate *appDelegate = (CTAppDelegate*)[[UIApplication sharedApplication] delegate];
-    [appDelegate.navigationController pushViewController:self animated:YES];
-}
-
-- (void)viewDidLoad
-{
-    [super viewDidLoad];
-    [self.webView setDelegate:self];
 }
 
 - (void)didReceiveMemoryWarning

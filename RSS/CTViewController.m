@@ -16,6 +16,7 @@
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
 @property (strong, nonatomic) CTWebViewController *webViewController;
 @property (weak, nonatomic) IBOutlet UIButton *addRssButton;
+@property (strong, nonatomic) UIRefreshControl *refreshControl;
 
 @property (strong, nonatomic) NSMutableArray *rssEntries;
 @property (strong, nonatomic) NSXMLParser *xml;
@@ -30,6 +31,7 @@
 {
     self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
     if (self) {
+        self.title = @"RSS Reeder";
         self.curVal = nil;
         self.webViewController = [[CTWebViewController alloc] init];
         self.rssEntries = [[NSMutableArray alloc] init];
@@ -40,17 +42,26 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    
-    [self.tableView setDelegate:self];
-    [self.tableView setDataSource:self];
-    [self.tableView reloadData];
-    [self.inputField setDelegate:self];
+    // Sett he navigation bar to opaque so that it doesnt cover the top of the view
+    self.navigationController.navigationBar.translucent = NO;
+    self.inputField.text = @"http://feeds.feedburner.com/TechCrunch/";
+    [self loadURLFromInput:self.inputField];
+
+    // Set up the pull to refresh control
+    self.refreshControl = [[UIRefreshControl alloc] init];
+    [self.refreshControl addTarget:self action:@selector(refresh:) forControlEvents:UIControlEventValueChanged];
+    self.refreshControl.tintColor = [UIColor blueColor];
+    [self.tableView addSubview:self.refreshControl];
 }
 
 - (void)didReceiveMemoryWarning
 {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
+}
+
+- (void)refresh:(UIRefreshControl *)refreshControl {
+    [self loadURLFromInput:self.inputField];
 }
 
 -(void)addEntries:(NSString *)str_url {
@@ -70,12 +81,15 @@
     }];
 }
 
+- (void)loadURLFromInput:(UITextField *)textField {
+    [self addEntries:textField.text];
+}
+
 #pragma mark - Text field delegate
 
 - (BOOL)textFieldShouldReturn:(UITextField *)textField {
     [textField resignFirstResponder];
-    [self addEntries:textField.text];
-    textField.text = @"";
+    [self loadURLFromInput:self.inputField];
     return NO;
 }
 
@@ -98,9 +112,12 @@
 -(void) parser:(NSXMLParser *)parser didEndElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qName {
     
     // done parsing feed
+    // NOTE: Blocks retain their references (self). Use a weak reference instead
+    __weak CTViewController *wself = self;
     if([elementName isEqualToString:@"channel"]) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            [self.tableView reloadData];
+            [wself.tableView reloadData];
+            [wself.refreshControl endRefreshing];
         });
         return;
     }
@@ -152,7 +169,10 @@
 // In a xib-based application, navigation from a table can be handled in -tableView:didSelectRowAtIndexPath:
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
+    // Deselect the row immedietly so that it doesnt stay highlighted forever
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
     [self.webViewController loadSite:self.rssEntries[indexPath.row][1]];
+    [self.navigationController pushViewController:self.webViewController animated:YES];
 }
 
 @end
